@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/DanielSchuette/goblast"
@@ -21,8 +22,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("error while making an API request: %v\n", err)
 	}
-	err = goblast.ParseResponse(resp)
+	rid, err := goblast.ParseResponse(resp)
 	if err != nil {
 		log.Fatalf("error while parsing the API response: %v\n", err)
 	}
+	fmt.Printf("parsed RID: %v\n", rid)
+
+	// print the results web page for the user
+	goblast.GetResultsByRID(rid)
 }
