@@ -13,7 +13,7 @@ func main() {
 		DB:      "nt",
 		Program: "blastn",
 		CMD:     "Put",
-		Format:  "JSON2",
+		Format:  "Text",
 	}
 
 	// make a request and parse the results

@@ -11,19 +11,38 @@ import (
 // the following package level constants are used to enforce compliance with the NCBI Usage Guidelines
 // at https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=DeveloperInfo
 const (
-	// TimeOutAfterRequest determines how long to wait after every API call
-	TimeOutAfterRequest = 10
-	// RequestFrequency determines the frequency with which potential results will be requested after every API call
-	RequestFrequency = 10
+	// Timeout determines how long to wait for every API call before timing out
+	Timeout = 10
+	// MaxRequestFrequency determines the frequency with which API calls can be made
+	MaxRequestFrequency = 10
 )
 
-// BlastParams TODO: documentation
+var (
+	client  = http.Client{Timeout: Timeout * time.Second}
+	baseURL = "https://blast.ncbi.nlm.nih.gov/Blast.cgi"
+)
+
+// BlastParams holds all possible API parameters and is used in func `Request' to construct the request URL
 type BlastParams struct {
-	Query   string
-	DB      string
-	Program string
-	CMD     string
-	Format  string
+	Query                string  /* query sequence which can be an accession or GI identifier or FASTA formatted */
+	DB                   string  /* database to query, defaults to `nt' */
+	Program              string  /* one of blastn, megablast, blastp, blastx, tblastn, tblastx */
+	CMD                  string  /* PUT or GET */
+	Format               string  /* one of HTML, Text, XML, XML2, JSON2, or Tabular */
+	Filter               string  /* 'F' to disable. 'T' or 'L' to enable. Prepend 'm' for mask at lookup (e.g., 'mL') */
+	Expect               float64 /* a number greater than zero indicating the expected value */
+	Reward               int     /* reward for matching bases (BLASTN and megaBLAST), an integer greater than zero */
+	Penalty              int     /* cost mismatched bases (BLASTN and megaBLAST), an integer less than zero */
+	GapCost              string  /* gap existence and extension costs, space-separated positive integers (e.g., '11 1') */
+	ScoringMatrix        string  /* scoring matrix to use, one of BLOSUM45, BLOSUM50, BLOSUM62 (default), BLOSUM80, BLOSUM90, PAM250, PAM30 or PAM70*/
+	HitListSize          int     /* number of databases sequences to keep, an integer greater than zero */
+	NumberOfDescriptions int     /* number of descriptions to print, an integer greater than zero */
+	Alignments           int     /* number of alignments to print, an integer greater than zero */
+	NCBIGI               string  /* whether or not to show NCBI GIs in report string ('T' or 'F') */
+	Threshold            int     /* Neighboring score for initial words, an integer greater than zero (BLASTP default is 11, does not apply to BLASTN or MegaBLAST) */
+	WordSize             int     /* sze of word for initial matches, an integer greater than zero */
+	CompBasedStats       int     /* Composition based statistics algorithm to use, one of 0, 1, 2, or 3 */
+	FormatObject         string  /* `SearchInfo' (status check) or `Alignment' (report formatting) */
 }
 
 // Request makes an API call to the NCBI BLAST API with a set of `params'
@@ -31,11 +50,11 @@ func Request(params *BlastParams) (*http.Response, error) {
 	// check validity of input
 
 	// construct a request URL from `params' and return an error if a parameter is missing
-	url := fmt.Sprintf("https://blast.ncbi.nlm.nih.gov/Blast.cgi?QUERY=%s&DATABASE=%s&PROGRAM=%s&CMD=%s&FORMAT_TYPE=%s", params.Query, params.DB, params.Program, params.CMD, params.Format)
+	url := fmt.Sprintf(baseURL+"?QUERY=%s&DATABASE=%s&PROGRAM=%s&CMD=%s&FORMAT_TYPE=%s", params.Query, params.DB, params.Program, params.CMD, params.Format)
 
 	// make an http request using the `url'
 	log.Printf("requesting %v\nplease wait...\n", url)
-	resp, err := http.Get(url)
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error requesting %v: %v", url, err)
 	}
@@ -43,8 +62,8 @@ func Request(params *BlastParams) (*http.Response, error) {
 	return resp, nil
 }
 
-// ParseResponse takes TODO: documentation
-func ParseResponse(resp *http.Response) error {
+// ParseResponse takes a `*http.Response' and parses and prints the results
+func ParseResponse(resp *http.Response) (RID, error) {
 	// if the server does not respond with a status 200 OK, return the status code
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("server sent an invalid response back: %v", resp.Status)
@@ -52,14 +71,12 @@ func ParseResponse(resp *http.Response) error {
 
 	// read the response body with a certain frequency and return the result to the user
 	defer resp.Body.Close()
-	for {
-		time.Sleep(RequestFrequency * time.Second)
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("error while reading the response body: %v", err)
-		}
-		fmt.Printf("response:\n%v\n", resp)
-		fmt.Printf("body:\n%v\n", string(body))
+	time.Sleep(RequestFrequency * time.Second) /* sleep for some time before reading response */
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error while reading the response body: %v", err)
 	}
+	fmt.Printf("response:\n%v\n", resp)
+	fmt.Printf("body:\n%v\n", string(body))
 	return nil
 }
