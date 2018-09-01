@@ -1,4 +1,4 @@
-// Package goblast provides a highly interface for accessing the NCBI BLAST API.
+// Package goblast provides a high level interface for accessing the NCBI BLAST API.
 //
 // API documentation can be found here: https://ncbi.github.io/blast-cloud/dev/api.html
 //

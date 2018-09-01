@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// the following package level constants are used to enforce compliance with the NCBI Usage Guidelines
+// These package level constants are used to enforce compliance with the NCBI Usage Guidelines
 // at https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=DeveloperInfo
 const (
 	// Timeout determines how long to wait for every API call before timing out
