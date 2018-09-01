@@ -23,7 +23,7 @@ func main() {
 		fmt.Println("the argument 'query' cannot be empty (see --help)")
 		os.Exit(1)
 	}
-	seq, err := cloningprimer.ValidateSequence(*querySeq) /* trims white spaces and '/n' and checks nucleotides */
+	seq, err := cloningprimer.ValidateSequence([]byte(*querySeq)) /* trims white spaces and '/n' and checks nucleotides */
 	if err != nil {
 		log.Fatalf("error validating the input sequence: %v\n", err)
 	}
