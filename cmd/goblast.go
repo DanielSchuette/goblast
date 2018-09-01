@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	querySeq = flag.String("query", "", "query sequence which can be an accession or GI identifier or FASTA formatted\nthis argument cannot be empty and must be a valid sequence for the API call to be successfull")
+	querySeq = flag.String("query", "", "query sequence which can be an accession or GI identifier or FASTA formatted\nthis argument cannot be empty and must be a valid sequence for the API call to be successful")
 )
 
 func main() {
