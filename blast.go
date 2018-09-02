@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -21,6 +22,8 @@ const (
 var (
 	client  = http.Client{Timeout: Timeout * time.Second}
 	baseURL = "https://blast.ncbi.nlm.nih.gov/Blast.cgi"
+	// ErrNoRID indicates a missing response identifier in a function call or API response
+	ErrNoRID = errors.New("no RID found or provided")
 )
 
 // RID is a string representing a response ID
@@ -89,22 +92,36 @@ func ParseResponse(resp *http.Response) (RID, error) {
 		return "", fmt.Errorf("error while reading the response body: %v", err)
 	}
 
-	// parse the `RID' from the response body
-	for i, n := 0, len(body); i < n; i++ {
-		if string(body[i:(i+4)]) == "name" && (string(body[(i+6):(i+9)]) == "RID") && (string(body[(i+11):(i+16)]) == "value") {
-			j := i + 18
-			var rid []byte
-			for {
-				rid = append(rid, body[j])
-				j++
-				if string(body[j:(j+1)]) == "\"" {
-					break
+	// parse the `RID' from the response body if a `name="RID" value="<RID>"` form field exists
+	phrase := `name="RID" value=`
+	if strings.Contains(string(body), phrase) {
+		idx := strings.Index(string(body), phrase)
+		if idx == -1 {
+			return "", fmt.Errorf("error while parsing the response body: %v", ErrNoRID)
+		}
+		idx += len(phrase) /* when parsing, the actual `phrase' is going to be skipped */
+		var rid []byte
+		var parse bool
+	ParseLoop:
+		for {
+			if body[idx] == '"' {
+				switch parse {
+				case true:
+					break ParseLoop
+				case false:
+					parse = true
+					idx++
+					continue ParseLoop
 				}
 			}
-			return RID(string(rid)), nil
+			if parse {
+				rid = append(rid, body[idx])
+			}
+			idx++
 		}
+		return RID(string(rid)), nil
 	}
-	return "", errors.New("error while parsing the response body: no 'RID' found")
+	return "", fmt.Errorf("error while parsing the response body: %v", ErrNoRID)
 }
 
 // GetResultsByRID takes a response ID (`RID') and prints the URL that lists the
@@ -113,3 +130,8 @@ func GetResultsByRID(rid RID) {
 	resultURL := fmt.Sprintf(baseURL+"?CMD=Get&RID=%s", rid)
 	fmt.Printf("visit %s to see the results of your NCBI BLAST query\n", resultURL)
 }
+
+// TODO: re-write GetResultsByRID --> GetResultsURL
+// then, allow for different data retrieval formats (JSON, plain text, ...)
+// and via command line flags in `goblast', allow user
+// to specify how to get data (as JSON, ... download or via visiting the URL)
