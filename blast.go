@@ -179,10 +179,3 @@ func GetResultsByRID(rid RID) {
 	resultURL := fmt.Sprintf(baseURL+"?CMD=Get&RID=%s", rid)
 	fmt.Printf("visit %s to see the results of your NCBI BLAST query\n", resultURL)
 }
-
-// TODO: re-write GetResultsByRID --> GetResultsURL
-// then, allow for different data retrieval formats (JSON, plain text, ...)
-// and via command line flags in `goblast', allow user
-// to specify how to get data (as JSON, ... download or via visiting the URL)
-// importantly, create two independent data structures for get request parameters
-// and POST request parameters
